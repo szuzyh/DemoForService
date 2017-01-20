@@ -188,16 +188,52 @@ func (c *UserController)GetAll(){
 	//var All JsonAll
 	var recordList []models.Pay
 	recordList = models.QueryAllRecord()
-	fmt.Println("------------All Record --------")
-	fmt.Println(recordList)
+	var jall JsonAll
+	var userARecord UserAndRecord
+	for i:=0;i<len(recordList);i++{
+		var pay models.Pay
+		pay=recordList[i]
+		var j3 JsonRecord
+		j3.Account=pay.Account
+		j3.Message=pay.Message
+		j3.Created=pay.Created
+		j3.Level=pay.Level
+		userARecord.Records=append(userARecord.Records,j3)
+	}
+	fmt.Println("--------------------J----------------")
 
 	fmt.Println("--------- All User --------")
-	models.QueryAllUser()
-	
+	var userList []models.Register
+	userList = models.QueryAllUser()
+	for i:=0;i<len(userList);i++{
+		var pay models.Register
+		pay=userList[i]
+		var j3 JsonUser
+		j3.Account=pay.Account
+		j3.Average=pay.Average
+		j3.Created=pay.Created
+		j3.Email=pay.Email
+		j3.Hotelname=pay.Hotelname
+		j3.Location=pay.Location
+		j3.Realname=pay.Realname
+		j3.Recharge=pay.Recharge
+		j3.Tel=pay.Tel
+		j3.Userlevel=pay.Userlevel
+		j3.Sex=pay.Sex
+		j3.Total=pay.Total
+		j3.Userlevel=pay.Userlevel
+		j3.Remain=pay.Remain
+		userARecord.Users=append(userARecord.Users,j3)
+	}
+	jall.status="success"
+	jall.Detail=userARecord
+	c.Data[`json`]= jall
+	c.ServeJSON()
+	return
 }
 
 type JsonAll struct {
-	Detail map[string]UserAndRecord
+	Detail UserAndRecord `json:"detail"`
 	status string `json:"status"`
 }
 type JsonRecord struct {
@@ -207,6 +243,22 @@ type JsonRecord struct {
 	Level string  `json:"level"`
 }
  type UserAndRecord struct {
-	 Users []models.Register  `json:"users"`
+	 Users []JsonUser  `json:"users"`
 	 Records []JsonRecord `json:"records"`
  }
+type JsonUser struct {
+	User string `json:"user"`
+	Realname string `json:"realname"`
+	Tel string `json:"tel"`
+	Email string `json:"email"`
+	Hotelname string `json:"hotelname"`
+	Location string `json:"location"`
+	Userlevel string `json:"userlevel"`
+	Remain string `json:"remain"`
+	Created string `json:"created"`
+	Total string `json:"total"`
+	Account string `json:"account"`
+	Sex string `json:"sex"`
+	Average string `json:"average"`
+	Recharge string `json:"recharge"`
+}

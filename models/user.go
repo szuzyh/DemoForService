@@ -110,26 +110,10 @@ func QueryUMsg(account string)(user Register){
 
 	var p []orm.ParamsList
 	o.Raw(sql).ValuesList(&p)
-	user=ListToRegister(user,p)
+	user=ListToRegisterWithIndex(user,p,0)
 	return
 }
-func ListToRegister(user Register,p []orm.ParamsList)(u Register){
-	user.User = p[0][1].(string)
-	user.Realname = p[0][3].(string)
-	user.Tel = p[0][4].(string)
-	user.Email= p[0][5].(string)
-	user.Hotelname = p[0][6].(string)
-	user.Location = p[0][7].(string)
-	user.Userlevel = p[0][8].(string)
-	user.Remain = p[0][9].(string)
-	user.Created = p[0][10].(string)
-	user.Total = p[0][11].(string)
-	user.Account = p[0][13].(string)
-	user.Sex = p[0][14].(string)
-	user.Average = p[0][15].(string)
-	user.Recharge = p[0][16].(string)
-	return user
-}
+
 func UpdateUMsg(account,user,realname,tel,hotelname,location,sex,email string)(){
 	o := orm.NewOrm()
 	var sql string
@@ -210,12 +194,27 @@ func QueryAllUser()(userList []Register){
 	var p []orm.ParamsList
 	o.Raw(sql).ValuesList(&p)
 	for i:=0;i<len(p);i++{
-		//var user Register
-		fmt.Println("------user------")
-		fmt.Println(p[i])
-		//user=ListToRegister(user,p[i])
-		//userList=append(userList,user)
+		var user Register
+		user=ListToRegisterWithIndex(user,p,i)
+		userList=append(userList,user)
 	}
-	//fmt.Println(userList)
-	return nil
+
+	return
+}
+func ListToRegisterWithIndex(user Register,p []orm.ParamsList,i int)(u Register){
+	user.User = p[i][1].(string)
+	user.Realname = p[i][3].(string)
+	user.Tel = p[i][4].(string)
+	user.Email= p[i][5].(string)
+	user.Hotelname = p[i][6].(string)
+	user.Location = p[i][7].(string)
+	user.Userlevel = p[i][8].(string)
+	user.Remain = p[i][9].(string)
+	user.Created = p[i][10].(string)
+	user.Total = p[i][11].(string)
+	user.Account = p[i][13].(string)
+	user.Sex = p[i][14].(string)
+	user.Average = p[i][15].(string)
+	user.Recharge = p[i][16].(string)
+	return user
 }
