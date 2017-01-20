@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;DemoForService&gt;">
+    <CLASSES>
+      <root url="file://E:/asp/src/github.com" />
+      <root url="file://E:/asp/src/cg" />
+      <root url="file://E:/asp/src/ipc" />
+    </CLASSES>
+    <SOURCES>
+      <root url="file://E:/asp/src/github.com" />
+      <root url="file://E:/asp/src/cg" />
+      <root url="file://E:/asp/src/ipc" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>
