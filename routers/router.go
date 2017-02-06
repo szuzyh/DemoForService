@@ -14,9 +14,13 @@ func init() {
 		beego.NSRouter("/getUMsg/:account", &controllers.UserController{}, "get:GetUMsg"),
 		beego.NSRouter("/getRecord/:account", &controllers.PayController{}, "get:GetRecord"),
 		beego.NSRouter("/getAverage/:account", &controllers.PayController{}, "get:GetAverage"),
+		beego.NSRouter("/downloadAvatar/:account", &controllers.UserController{}, "get:DownloadAvatar"),
 		beego.NSRouter("/recharge", &controllers.UserController{}, "post:Recharge"),
 		beego.NSRouter("/ifaces", &controllers.UserController{}, "get:Ifaces"),
 		beego.NSRouter("/getAll/:all", &controllers.UserController{}, "get:GetAll"),
+		beego.NSNamespace("/compare", beego.NSInclude(&controllers.CompareController{}, ), ),
+		beego.NSNamespace("/upgrade", beego.NSInclude(&controllers.UpgradeController{}, ), ),
+		beego.NSRouter("/getComparePic/:uid/:type", &controllers.PayController{}, "get:GetComparePic"),
 
 	)
 	beego.AddNamespace(ns)

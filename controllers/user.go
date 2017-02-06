@@ -11,6 +11,11 @@ import (
 
 	"strings"
 	"strconv"
+	_ "io/ioutil"
+	"encoding/base64"
+	"os"
+
+
 )
 
 type UserController struct {
@@ -32,7 +37,6 @@ func (controller *UserController) Register() {
 		return
 	}
 	account, err := models.AddRegister(user, password, email)
-	fmt.Println(account)
 	if err != nil {
 		controller.Data["json"] = err.Error()
 		controller.ServeJSON()
@@ -84,8 +88,6 @@ func (c *UserController)GetUMsg(){
 	 }
 	var s models.Register
 	s = models.QueryUMsg(account)
-	fmt.Println(s)
-	fmt.Println(s.User)
 	Map := make(map[string]string)
 	setData(Map,s)
 	j := JsonM1{Detail:Map,Status:"success"}
@@ -194,15 +196,17 @@ func (c *UserController)GetAll(){
 		var pay models.Pay
 		pay=recordList[i]
 		var j3 JsonRecord
+		j3.Uid=strconv.Itoa(pay.Id)
 		j3.Account=pay.Account
 		j3.Message=pay.Message
 		j3.Created=pay.Created
 		j3.Level=pay.Level
+		j3.ID=pay.ID
 		userARecord.Records=append(userARecord.Records,j3)
 	}
-	fmt.Println("--------------------J----------------")
 
-	fmt.Println("--------- All User --------")
+
+
 	var userList []models.Register
 	userList = models.QueryAllUser()
 	for i:=0;i<len(userList);i++{
@@ -237,10 +241,12 @@ type JsonAll struct {
 	status string `json:"status"`
 }
 type JsonRecord struct {
+	Uid string `json:"uid"`
 	Account string `json:"account"`
 	Created string  `json:"created"`
 	Message string  `json:"message"`
 	Level string  `json:"level"`
+	ID string `json:"id"`
 }
  type UserAndRecord struct {
 	 Users []JsonUser  `json:"users"`
@@ -261,4 +267,38 @@ type JsonUser struct {
 	Sex string `json:"sex"`
 	Average string `json:"average"`
 	Recharge string `json:"recharge"`
+}
+
+func(c *UserController)DownloadAvatar(){
+	defer c.ServeJSON()
+	account := c.GetString(":account")
+
+	ff, err := os.Open("/tmp/account/"+account+"/head/"+account+"_head.jpg")
+	if err!=nil{
+		fmt.Println(err)
+		ff,_ =os.Open("/tmp/account/null.jpg")
+	}
+	defer ff.Close()
+	sourcebuffer := make([]byte, 500000)
+	n, _ := ff.Read(sourcebuffer)
+	//base64压缩
+	sourcestring := base64.StdEncoding.EncodeToString(sourcebuffer[:n])
+	//c.Ctx.Output.Download("/tmp/account/"+account+"/head/"+account+"_head.jpg",account+"_head.jpg")
+	//c.Data[`string`]="data:image/jpg;base64,"+strings.TrimSpace(sourcestring)
+	//c.Ctx.ResponseWriter.("data:image/jpg;base64,"+strings.TrimSpace(sourcestring))
+
+
+	//s := "data:image/jpg;base64,"+strings.TrimSpace(sourcestring)
+	s := "data:image/jpg;base64,"+sourcestring
+	//c.Ctx.ResponseWriter.Write([]byte(s))
+	//c.Ctx.Output.Context.WriteString()
+	//c.Ctx.WriteString(s)
+	//var arr JsonNull
+	//arr.Detail=s;
+	//arr.Status="success"
+	//c.Data[`json`]=arr
+	c.Ctx.Output.Body([]byte(s))
+	//c.Data[`json`]=s
+	//c.ServeJSON()
+	//return
 }

@@ -3,11 +3,12 @@ package models
 import (
 	"github.com/astaxie/beego/orm"
 	_ "strings"
-	_ "fmt"
+
 	"fmt"
 	"strings"
 	"strconv"
 	"time"
+	"math"
 )
 
 type Pay struct {
@@ -16,6 +17,7 @@ type Pay struct {
 	Created string     `orm:"column(created);type(datetime);null"`
 	Message string      `orm:"column(message);size(100)"`
 	Level string      `orm:"column(level);size(20)"`
+	ID string `orm:"column(id);size(30)"`
 }
 
 type PayList struct {
@@ -28,7 +30,7 @@ func (t *Pay) TableName() string {
 func init() {
 	orm.RegisterModel(new(Pay))
 }
-
+//查询记录 包含id
 func QueryRecord(account string)(list []Pay){
 	o := orm.NewOrm()
 	var sql string
@@ -38,15 +40,18 @@ func QueryRecord(account string)(list []Pay){
 
 	for i:=0;i<len(p);i++{
 		var pay Pay
+		pay.Id, _ =strconv.Atoi(p[i][0].(string))
 		pay.Account=p[i][1].(string)
 		pay.Created=p[i][2].(string)
 		pay.Message=p[i][3].(string)
 		pay.Level=p[i][4].(string)
+		pay.ID=p[i][5].(string)
+		fmt.Println(pay.ID)
 		list=append(list,pay)
 	}
-	fmt.Println(list)
 	return list
 }
+//不包含id
 func QueryAllRecord()(list []Pay){
 	o := orm.NewOrm()
 	var sql string
@@ -55,13 +60,13 @@ func QueryAllRecord()(list []Pay){
 	o.Raw(sql).ValuesList(&p)
 	for i:=0;i<len(p);i++{
 		var pay Pay
+		pay.Id, _ =strconv.Atoi(p[i][0].(string))
 		pay.Account=p[i][1].(string)
 		pay.Created=p[i][2].(string)
 		pay.Message=p[i][3].(string)
 		pay.Level=p[i][4].(string)
 		list=append(list,pay)
 	}
-	fmt.Println(list)
 	return list
 }
 func setData(Map map[string]string, pay Pay) {
@@ -77,7 +82,6 @@ func QueryMessage(account string) (average int) {
 	var p []orm.ParamsList
 	o.Raw(sql).ValuesList(&p)
 	var msg []string
-	fmt.Println()
 	if len(p)==0 {
 		return 0
 	}
@@ -114,5 +118,45 @@ func AddRecordRecharge(account,recharge,sum string)(){
 		fmt.Println("mysql row affected nums: ", num)
 		return
 	}
+}
+func Record (ID,account string ,confidence float64){
+	o := orm.NewOrm()
+
+
+	confidence = math.Trunc(confidence*1e2 + 0.5)*1e-2
+	confidence*=100
+	con:=strconv.FormatFloat(confidence,'f',-1,64)
+	remain :=QueryRemain(account)
+	num,_ := strconv.Atoi(remain)
+	num--
+	remain = strconv.Itoa(num)
+	UpdateRemain(account,remain)
+	msg:="用户:"+account+" 进行了一次对比,相似度为:"+con+",剩余次数为:"+remain;
+	t := time.Now().Format("2006-01-02 15:04:05")
+	t = string(t)
+	sql := "insert into pay(account,created,message,level,id) values('" + account + "','" + t + "','" + msg + "','info','"+ID+"')"
+	r,err := o.Raw(sql).Exec()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	} else {
+		num, _ := r.RowsAffected()
+		fmt.Println("mysql row affected nums: ", num)
+		return
+	}
+}
+func QueryRecordWithUid(uid string)(pay Pay){
+	o := orm.NewOrm()
+	var sql string
+	sql = "select  *from pay where uid='"+uid+"'"
+	var p []orm.ParamsList
+	o.Raw(sql).ValuesList(&p)
+	pay.Id, _ =strconv.Atoi(p[0][0].(string))
+	pay.Account=p[0][1].(string)
+	pay.Created=p[0][2].(string)
+	pay.Message=p[0][3].(string)
+	pay.Level=p[0][4].(string)
+	pay.ID=p[0][5].(string)
+	return
 }
 

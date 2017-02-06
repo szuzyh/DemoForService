@@ -218,3 +218,43 @@ func ListToRegisterWithIndex(user Register,p []orm.ParamsList,i int)(u Register)
 	user.Recharge = p[i][16].(string)
 	return user
 }
+func QueryRemain(account string)(remain string){
+	o := orm.NewOrm()
+	var sql string
+	endswith := strings.HasSuffix(account,".com")
+	if endswith {
+		sql = "select remain from register where email='"+account+"'"
+	}else {
+		sql = "select remain from register where account='"+account+"'"
+	}
+
+	var p []orm.Params
+	o.Raw(sql).Values(&p)
+	if str,ok := p[0]["remain"].(string); ok {
+		/* act on str */
+		remain = str
+		return
+	} else {
+		/* not string */
+		return "0"
+	}
+}
+func UpdateRemain(account,remain string){
+	o := orm.NewOrm()
+	var sql string
+	endswith := strings.HasSuffix(account,".com")
+	if endswith {
+		sql="update  register set remain='"+remain+"' where email='"+account+"'"
+	}else {
+		sql="update  register set remain='"+remain+"' where account='"+account+"'"
+	}
+	r,err := o.Raw(sql).Exec()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	} else {
+		num, _ := r.RowsAffected()
+		fmt.Println("mysql row affected nums: ", num)
+		return
+	}
+}
