@@ -8,7 +8,7 @@ import (
 	"strings"
 	"strconv"
 	"time"
-	"math"
+	_ "math"
 )
 
 type Pay struct {
@@ -46,7 +46,6 @@ func QueryRecord(account string)(list []Pay){
 		pay.Message=p[i][3].(string)
 		pay.Level=p[i][4].(string)
 		pay.ID=p[i][5].(string)
-		fmt.Println(pay.ID)
 		list=append(list,pay)
 	}
 	return list
@@ -119,13 +118,9 @@ func AddRecordRecharge(account,recharge,sum string)(){
 		return
 	}
 }
-func Record (ID,account string ,confidence float64){
+func Record (ID,account string ,con string)(uid string){
 	o := orm.NewOrm()
 
-
-	confidence = math.Trunc(confidence*1e2 + 0.5)*1e-2
-	confidence*=100
-	con:=strconv.FormatFloat(confidence,'f',-1,64)
 	remain :=QueryRemain(account)
 	num,_ := strconv.Atoi(remain)
 	num--
@@ -135,16 +130,34 @@ func Record (ID,account string ,confidence float64){
 	t := time.Now().Format("2006-01-02 15:04:05")
 	t = string(t)
 	sql := "insert into pay(account,created,message,level,id) values('" + account + "','" + t + "','" + msg + "','info','"+ID+"')"
-	r,err := o.Raw(sql).Exec()
+	re,err := o.Raw(sql).Exec()
 	if err != nil {
 		fmt.Println(err.Error())
-		return
+		return "0"
 	} else {
-		num, _ := r.RowsAffected()
-		fmt.Println("mysql row affected nums: ", num)
-		return
+		//返回uid
+		//uid=QueryLastUidForCompare(account)
+		id, err := re.LastInsertId()
+		if err != nil {
+			return "0"
+		}
+
+		updateSql:="select total  from register where account='"+account+"'"
+		var p []orm.ParamsList
+		o.Raw(updateSql).ValuesList(&p)
+		result1,_ :=p[0][0].(string)
+		i,_:=strconv.Atoi(result1)
+		i+=1
+		total := strconv.Itoa(i)
+		updateSql1:="update register set total = '"+total+"' where account='"+account+"'"
+		o.Raw(updateSql1).Exec()
+		average := QueryMessage(account)
+		UpdateAverage(account,strconv.Itoa(average))
+		return strconv.FormatInt(id,10)
 	}
+
 }
+
 func QueryRecordWithUid(uid string)(pay Pay){
 	o := orm.NewOrm()
 	var sql string
@@ -159,4 +172,23 @@ func QueryRecordWithUid(uid string)(pay Pay){
 	pay.ID=p[0][5].(string)
 	return
 }
+func QueryLastUidForCompare(account string)(uid string){
+	o := orm.NewOrm()
+	var sql string
+	sql = "select * from pay where account='"+account+"'and level='info'"
+	var p []orm.ParamsList
+	o.Raw(sql).ValuesList(&p)
+	var msg []string
+	if len(p)==0 {
+		return "0"
+	}
+	for i:=0;i<len(p);i++{
+		if !strings.Contains(p[i][3].(string),"金额") {
+			//msg[i]=p[i][3].(string)
+			msg=append(msg,p[i][0].(string))
+		}
+	}
+	return msg[len(msg)-1]
+}
+
 

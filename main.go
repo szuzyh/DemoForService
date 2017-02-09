@@ -6,6 +6,7 @@ import (
 	_"github.com/go-sql-driver/mysql"
 	_"github.com/DemoForService/docs"
 	_ "github.com/DemoForService/routers"
+	_ "net/http/pprof"
 )
 
 func init() {

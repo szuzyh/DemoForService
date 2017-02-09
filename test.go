@@ -15,6 +15,7 @@ import (
 
 
 func main() {
+
 	//s:="123456_441424199508272258_head.jpg"
 	//str := strings.Split(s,"_")
 	//fmt.Println(str[0])

@@ -7,14 +7,14 @@ import (
 	"fmt"
 )
 
-func FileMv(account,ID string){
+func FileMv(account,ID,uid string){
 	t := time.Now().Format("2006-01-02 15")
 	err := os.MkdirAll("/tmp/compare/"+account+"/"+t, 0700)
 	if err!=nil{
 	    fmt.Println(err)
 	}
-	CopyFile("/tmp/compare/"+account+"/"+t+"/"+account+"_"+ID+"_person.jpg","/tmp/compare/"+account+"/base/"+account+"_person.jpg")
-	CopyFile("/tmp/compare/"+account+"/"+t+"/"+account+"_"+ID+"_own.jpg","/tmp/compare/"+account+"/base/"+account+"_own.jpg")
+	CopyFile("/tmp/compare/"+account+"/"+t+"/"+uid+"_"+account+"_"+ID+"_person.jpg","/tmp/compare/"+account+"/base/"+account+"_person.jpg")
+	CopyFile("/tmp/compare/"+account+"/"+t+"/"+uid+"_"+account+"_"+ID+"_own.jpg","/tmp/compare/"+account+"/base/"+account+"_own.jpg")
 
 
 }

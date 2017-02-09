@@ -6,6 +6,7 @@ import (
 	"github.com/astaxie/beego"
 	"strings"
 	_ "time"
+	"github.com/DemoForService/models"
 )
 
 // Operations about Upgrade
@@ -32,6 +33,9 @@ func (u *UpgradeController) Post() {
 	var account,Type string
 	if strings.Contains(h.Filename,"head"){
 		account = spiltHeadImg(h.Filename)
+		if strings.Contains(account,".")||strings.Contains(account,"@"){
+			account = models.QueryAccountWithEmail(account)
+		}
 		fpath = path.Join("/tmp/account/"+account+"/head", h.Filename)
 		err = os.MkdirAll("/tmp/account/"+account+"/head", 0700)
 	}else {

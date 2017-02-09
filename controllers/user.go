@@ -28,15 +28,16 @@ func (controller *UserController) Register() {
 	user := controller.GetString("user")
 	password := controller.GetString("password")
 	email := controller.GetString("email")
+	location := controller.GetString("location")
 	arr := make(map[string]string)
-	if models.QueryIsExist(email){
+	if models.QueryIsEmailExist(email){
 		arr["detail"] = "email is used"
 		arr["status"] = "failed"
 		controller.Data[`json`]= arr
 		controller.ServeJSON()
 		return
 	}
-	account, err := models.AddRegister(user, password, email)
+	account, err := models.AddRegister(user, password, email,location)
 	if err != nil {
 		controller.Data["json"] = err.Error()
 		controller.ServeJSON()
@@ -56,28 +57,40 @@ func (c *UserController)Login(){
 	defer c.ServeJSON()
 	password := c.GetString("password")
 	account := c.GetString("account")
-	arr := make(map[string]string)
-	if !models.QueryIsExist(account){
-
-		arr["detail"] = "account not found"
-		arr["status"] = "failed"
-
+	var arr JsonM
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
+	if account=="0" {
+		arr.Detail="account not found"
+		arr.Status="failed"
 	}else {
-		str := models.QueryPassword(account)
-		if !strings.EqualFold(password,str){
-			arr["detail"] = "password error"
-			arr["status"] = "failed"
+		if strings.EqualFold(models.QueryOnline(account),"true"){
+			arr.Detail="account online"
+			arr.Status="failed"
 		}else {
-			arr["detail"] = "login"
-			arr["status"] = "success"
+			str := models.QueryPassword(account)
+			if !strings.EqualFold(password,str){
+				arr.Detail="password error"
+				arr.Status="failed"
+			}else {
+				arr.Detail="login"
+				arr.Status="success"
+				models.UpdateOnline(account,"true")
+			}
 		}
+
 	}
 	c.Data[`json`]= arr
 	c.ServeJSON()
+	return
 }
 func (c *UserController)GetUMsg(){
 	defer c.ServeJSON()
 	account := c.GetString(":account")
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
 	var arr JsonM
 	 if !models.QueryIsExist(account){
 		 arr.Detail= "account not found"
@@ -105,6 +118,9 @@ func(c *UserController)UpdateUMsg(){
 	hotelname := c.GetString("hotelname")
 	location := c.GetString("location")
 	sex := c.GetString("sex")
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
 	var arr JsonM
 	if !models.QueryIsExist(account){
 		arr.Detail= "account not found"
@@ -152,6 +168,9 @@ type JsonM1 struct {
 func (c *UserController)Recharge(){
 	defer c.ServeJSON()
 	account := c.GetString("account")
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
 	sum := c.GetString("sum")
 	var arr JsonM
 	if !models.QueryIsExist(account){
@@ -229,7 +248,7 @@ func (c *UserController)GetAll(){
 		j3.Remain=pay.Remain
 		userARecord.Users=append(userARecord.Users,j3)
 	}
-	jall.status="success"
+	jall.Status="success"
 	jall.Detail=userARecord
 	c.Data[`json`]= jall
 	c.ServeJSON()
@@ -238,7 +257,7 @@ func (c *UserController)GetAll(){
 
 type JsonAll struct {
 	Detail UserAndRecord `json:"detail"`
-	status string `json:"status"`
+	Status string `json:"status"`
 }
 type JsonRecord struct {
 	Uid string `json:"uid"`
@@ -272,33 +291,27 @@ type JsonUser struct {
 func(c *UserController)DownloadAvatar(){
 	defer c.ServeJSON()
 	account := c.GetString(":account")
-
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
 	ff, err := os.Open("/tmp/account/"+account+"/head/"+account+"_head.jpg")
 	if err!=nil{
 		fmt.Println(err)
 		ff,_ =os.Open("/tmp/account/null.jpg")
 	}
 	defer ff.Close()
+	//生成base64
 	sourcebuffer := make([]byte, 500000)
 	n, _ := ff.Read(sourcebuffer)
-	//base64压缩
 	sourcestring := base64.StdEncoding.EncodeToString(sourcebuffer[:n])
-	//c.Ctx.Output.Download("/tmp/account/"+account+"/head/"+account+"_head.jpg",account+"_head.jpg")
-	//c.Data[`string`]="data:image/jpg;base64,"+strings.TrimSpace(sourcestring)
-	//c.Ctx.ResponseWriter.("data:image/jpg;base64,"+strings.TrimSpace(sourcestring))
-
-
-	//s := "data:image/jpg;base64,"+strings.TrimSpace(sourcestring)
 	s := "data:image/jpg;base64,"+sourcestring
-	//c.Ctx.ResponseWriter.Write([]byte(s))
-	//c.Ctx.Output.Context.WriteString()
-	//c.Ctx.WriteString(s)
-	//var arr JsonNull
-	//arr.Detail=s;
-	//arr.Status="success"
-	//c.Data[`json`]=arr
+
 	c.Ctx.Output.Body([]byte(s))
-	//c.Data[`json`]=s
-	//c.ServeJSON()
-	//return
+}
+func (c *UserController)FindPasswd(){
+	email :=c.GetString("email")
+	fmt.Println(email)
+	if strings.Contains(email,".")||strings.Contains(email,"@"){
+		email = models.QueryAccountWithEmail(email)
+	}
 }

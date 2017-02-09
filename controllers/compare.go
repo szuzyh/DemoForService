@@ -15,6 +15,9 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/crackcomm/nsqueue/producer"
 	"github.com/nsqio/go-nsq"
+	_ "strings"
+	"encoding/json"
+
 )
 
 // Operations about Compare
@@ -28,6 +31,7 @@ type Result struct {
 }
 
 type VerifyMsg struct {
+	CompareMsg map[string]string
 	ID string
 	User  string
 	Files []string
@@ -41,6 +45,8 @@ type VerifyMsg struct {
 // @router / [post]
 func (c *CompareController) Post() {
 	account := c.GetString("account")
+	strs:=c.GetStrings("msg")
+	fmt.Println(strs)
 	ID := c.GetString("ID")
 	if len(ID) == 0 {
 		c.Data["json"] = Result{"no ID input", "fail"}
@@ -48,6 +54,10 @@ func (c *CompareController) Post() {
 		return
 	}
 
+	s := strs[0]
+	var dat map[string]string
+	json.Unmarshal([]byte(s), &dat);
+	//spls := strings.Split(s,)
 	files := make([]string, 0)
 	files = append(files, path.Join("/tmp/compare/"+account+"/base", account+"_person.jpg"), path.Join("/tmp/compare/"+account+"/base", account+"_own.jpg"))
 
@@ -69,20 +79,8 @@ func (c *CompareController) Post() {
 		return
 	}
 
-/*	confidence, err := c.execVerify("/nvr/verify", files)
-	if err != nil {
-		c.Data["json"] = Result{err.Error(), "fail"}
-		c.ServeJSON()
-		return
-	}
-	
-	if confidence < 0.5 {
-		c.Data["json"] = Result{"confidence too low", "fail"}
-	} else {
-		c.Data["json"] = Result{strconv.FormatFloat(confidence, 'f', -1, 32), "success"}
-	}*/
 
-	err:= c.execVerifyByNSQ(account, files, 5,ID)
+	err:= c.execVerifyByNSQ(account, files, 5,ID,dat)
 
 
 	if err != nil {
@@ -133,10 +131,10 @@ func (c *CompareController) execVerify(cmdName string, cmdArgs []string) (float6
 	return float64(0), errors.New("failed to exec verify.exe")
 }
 
-func (c *CompareController) execVerifyByNSQ(user string, cmdArgs []string, timeout int,ID string) (err error) {
-	msg := VerifyMsg{User: user, Files: cmdArgs,ID:ID}
+func (c *CompareController) execVerifyByNSQ(user string, cmdArgs []string, timeout int,ID string,compareMsg map[string]string) (err error) {
+	msg := VerifyMsg{User: user, Files: cmdArgs,ID:ID,CompareMsg:compareMsg}
 	myProducer := producer.New()
-	myProducer.Connect("192.168.2.122:4150")
+	myProducer.Connect("120.76.128.35:4150")
 
 	doneChan := make(chan *nsq.ProducerTransaction, 1)
 	myProducer.PublishJSONAsync("verify", msg, doneChan)

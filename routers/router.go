@@ -1,3 +1,7 @@
+// @APIVersion 1.0.0
+// @Title mobile API
+// @Description mobile has every tool to get any job done, so codename for the new mobile APIs.
+// @Contact astaxie@gmail.com
 package routers
 
 import (
@@ -21,6 +25,8 @@ func init() {
 		beego.NSNamespace("/compare", beego.NSInclude(&controllers.CompareController{}, ), ),
 		beego.NSNamespace("/upgrade", beego.NSInclude(&controllers.UpgradeController{}, ), ),
 		beego.NSRouter("/getComparePic/:uid/:type", &controllers.PayController{}, "get:GetComparePic"),
+		beego.NSRouter("/getCMsg/:uid", &controllers.CompareMsgController{}, "get:GetCMsg"),
+		beego.NSRouter("/findPasswd", &controllers.UserController{}, "get:FindPasswd"),
 
 	)
 	beego.AddNamespace(ns)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"net/smtp"
 )
 
 
@@ -36,7 +37,7 @@ func init() {
 	orm.RegisterModel(new(Register))
 }
 
-func AddRegister(user, password, email string) (account string, err error) {
+func AddRegister(user, password, email,location string) (account string, err error) {
 	o := orm.NewOrm()
 	t := time.Now().Format("2006-01-02 15:04:05")
 	t = string(t)
@@ -44,7 +45,7 @@ func AddRegister(user, password, email string) (account string, err error) {
 	if len(account) != 6 {
 		account = account + "0"
 	}
-	r, err := o.Raw("insert into register(user,password,realname,tel,email,hotelname,location,userlevel,remain,created,total,account,sex,average,recharge) values('" + user + "','" + password + "','','','" + email + "','','','1','100','" + t + "','0','" + account + "','','0','0')").Exec()
+	r, err := o.Raw("insert into register(user,password,realname,tel,email,hotelname,location,userlevel,remain,created,total,account,sex,average,recharge) values('" + user + "','" + password + "','','','" + email + "','','"+location+"','1','100','" + t + "','0','" + account + "','','0','0')").Exec()
 	if err != nil {
 		fmt.Println(err.Error())
 		return "", err
@@ -63,13 +64,17 @@ func createAccount() (account string) {
 
 func QueryIsExist(account string)(exist bool){
 	o := orm.NewOrm()
-	var sql string
-	endswith := strings.HasSuffix(account,".com")
-	if endswith {
-		sql = "select password from register where email='"+account+"'"
-	}else {
-		sql = "select password from register where account='"+account+"'"
+	sql := "select password from register where account='"+account+"'"
+	var p []orm.Params
+	o.Raw(sql).Values(&p)
+	if p==nil{
+		return false
 	}
+	return true
+}
+func QueryIsEmailExist(email string)(exist bool){
+	o := orm.NewOrm()
+	sql := "select password from register where email='"+email+"'"
 	var p []orm.Params
 	o.Raw(sql).Values(&p)
 	if p==nil{
@@ -80,7 +85,7 @@ func QueryIsExist(account string)(exist bool){
 func QueryPassword(account string)(password string){
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
+	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
 	if endswith {
 		sql = "select password from register where email='"+account+"'"
 	}else {
@@ -101,7 +106,7 @@ func QueryPassword(account string)(password string){
 func QueryUMsg(account string)(user Register){
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
+	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
 	if endswith {
 		sql = "select  *from register where email='"+account+"'"
 	}else {
@@ -117,7 +122,7 @@ func QueryUMsg(account string)(user Register){
 func UpdateUMsg(account,user,realname,tel,hotelname,location,sex,email string)(){
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
+	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
 	if endswith {
 		sql = "update register SET user="+"'"+user+"', realname="+"'"+realname+"', tel="+"'"+tel+"', email="+"'"+email+"', hotelname="+"'"+hotelname+"', sex="+"'"+sex+"', location="+"'"+location+"'"+" where email='"+account+"'"
 	}else {
@@ -150,7 +155,7 @@ func UpdateAverage(account string,average string)(){
 func UpdateRecharge(account,recharge string)(){
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
+	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
 	if endswith {
 		sql="update  register set recharge='"+recharge+"' where email='"+account+"'"
 	}else {
@@ -169,7 +174,7 @@ func UpdateRecharge(account,recharge string)(){
 func QueryRecharge(account string) (recharge string) {
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
+	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
 	if endswith {
 		sql = "select recharge from register where email='"+account+"'"
 	}else {
@@ -221,7 +226,7 @@ func ListToRegisterWithIndex(user Register,p []orm.ParamsList,i int)(u Register)
 func QueryRemain(account string)(remain string){
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
+	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
 	if endswith {
 		sql = "select remain from register where email='"+account+"'"
 	}else {
@@ -242,12 +247,10 @@ func QueryRemain(account string)(remain string){
 func UpdateRemain(account,remain string){
 	o := orm.NewOrm()
 	var sql string
-	endswith := strings.HasSuffix(account,".com")
-	if endswith {
-		sql="update  register set remain='"+remain+"' where email='"+account+"'"
-	}else {
-		sql="update  register set remain='"+remain+"' where account='"+account+"'"
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = QueryAccountWithEmail(account)
 	}
+	sql="update  register set remain='"+remain+"' where account='"+account+"'"
 	r,err := o.Raw(sql).Exec()
 	if err != nil {
 		fmt.Println(err.Error())
@@ -256,5 +259,74 @@ func UpdateRemain(account,remain string){
 		num, _ := r.RowsAffected()
 		fmt.Println("mysql row affected nums: ", num)
 		return
+	}
+}
+func QueryAccountWithEmail(email string)(account string){
+	o := orm.NewOrm()
+	sql :="select account from register where email='"+email+"'"
+	var p []orm.ParamsList
+	o.Raw(sql).ValuesList(&p)
+	if p==nil{
+		account= "0"
+	}else {
+		result,_ :=p[0][0].(string)
+		account=result
+	}
+
+	return
+}
+func QueryOnline(account string)(online string){
+	o := orm.NewOrm()
+	sql :="select online from register where account='"+account+"'"
+	var p []orm.ParamsList
+	o.Raw(sql).ValuesList(&p)
+	result,_ :=p[0][0].(string)
+	online=result
+	return
+}
+func UpdateOnline(account,Type string){
+	o := orm.NewOrm()
+	sql :="update register set online = '"+Type+"' where account = '"+account+"'"
+	r,err := o.Raw(sql).Exec()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	} else {
+		num, _ := r.RowsAffected()
+		fmt.Println("mysql row affected nums: ", num)
+		return
+	}
+}
+func SendToMail(user, password, host, to, subject, body, mailtype string) error {
+	hp := strings.Split(host, ":")
+	auth := smtp.PlainAuth("", user, password, hp[0])
+	var content_type string
+	if mailtype == "html" {
+		content_type = "Content-Type: text/" + mailtype + "; charset=UTF-8"
+	} else {
+		content_type = "Content-Type: text/plain" + "; charset=UTF-8"
+	}
+
+	msg := []byte("To: " + to + "\r\nFrom: " + user + ">\r\nSubject: " + "\r\n" + content_type + "\r\n\r\n" + body)
+	send_to := strings.Split(to, ";")
+	err := smtp.SendMail(host, auth, user, send_to, msg)
+	return err
+}
+func SendMail(emial,userPass string){
+	user := "ace@zexabox.com"
+	password := "Zyh2013800297,."
+	host := "smtp.exmail.qq.com:25"
+
+
+	subject := "使用Golang发送邮件"
+
+
+	fmt.Println("send email")
+	err := SendToMail(user, password, host, emial, subject, userPass, "html")
+	if err != nil {
+		fmt.Println("Send mail error!")
+		fmt.Println(err)
+	} else {
+		fmt.Println("Send mail success!")
 	}
 }

@@ -18,6 +18,9 @@ type PayController struct {
 func (c *PayController)GetRecord(){
 	defer c.ServeJSON()
 	account := c.GetString(":account")
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
 	var arr JsonM
 	if !models.QueryIsExist(account){
 		arr.Detail= "account not found"
@@ -47,7 +50,6 @@ func (c *PayController)GetRecord(){
 		j3.Created=pay.Created
 		j3.Level=pay.Level
 		j3.ID=pay.ID
-		fmt.Println(j3.ID)
 		j.Detail=append(j.Detail,j3)
 	}
 
@@ -86,6 +88,9 @@ func setRecordData(Map map[string]string, pay models.Pay) {
 func(c *PayController)GetAverage(){
 	defer c.ServeJSON()
 	account := c.GetString(":account")
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
 	var arr JsonM
 	average := models.QueryMessage(account)
 	models.UpdateAverage(account,strconv.Itoa(average))
@@ -102,7 +107,7 @@ func (c *PayController)GetComparePic() {
 	Type := c.GetString(":type")
 	pay := models.QueryRecordWithUid(id)
 
-	//待转化为时间戳的字符串 注意 这里的小时和分钟还要秒必须写 因为是跟着模板走的 修改模板的话也可以不写
+	//待转化为时间戳的字符串 注意 这里的小时和分钟还要秒必须写 因为 是跟着模板走的 修改模板的话也可以不写
 	timeLayout := "2006-01-02 15:04:05"                              //转化所需模板
 	loc, _ := time.LoadLocation("Local")                             //重要：获取时区
 	theTime, _ := time.ParseInLocation(timeLayout, pay.Created, loc) //使用模板在对应时区转化为time.time类型
@@ -114,7 +119,7 @@ func (c *PayController)GetComparePic() {
 	sourcebuffer := make([]byte, 500000)
 	var sourcestring string
 	if strings.EqualFold(Type, "person") {
-		ff, err := os.Open("/tmp/compare/" + pay.Account + "/" + dataTimeStr + "/" + pay.Account + "_" + pay.ID + "_person.jpg")
+		ff, err := os.Open("/tmp/compare/" + pay.Account + "/" + dataTimeStr + "/" + id+"_"+pay.Account + "_" + pay.ID + "_person.jpg")
 		if err != nil {
 			fmt.Println(err)
 			ff, _ = os.Open("/tmp/compare/error.jpg")
@@ -124,7 +129,7 @@ func (c *PayController)GetComparePic() {
 		sourcestring = base64.StdEncoding.EncodeToString(sourcebuffer[:n])
 
 	} else {
-		ff, err := os.Open("/tmp/compare/" + pay.Account + "/" + dataTimeStr + "/" + pay.Account + "_" + pay.ID + "_own.jpg")
+		ff, err := os.Open("/tmp/compare/" + pay.Account + "/" + dataTimeStr + "/" + id+"_"+pay.Account + "_" + pay.ID + "_own.jpg")
 		if err != nil {
 			fmt.Println(err)
 			ff, _ = os.Open("/tmp/compare/error.jpg")
