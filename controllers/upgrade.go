@@ -7,6 +7,9 @@ import (
 	"strings"
 	_ "time"
 	"github.com/DemoForService/models"
+	_ "bytes"
+	_ "image/jpeg"
+	_ "fmt"
 )
 
 // Operations about Upgrade
@@ -28,7 +31,6 @@ func (u *UpgradeController) Post() {
 		return
 	}
 
-	//ssss
 	var fpath string
 	var account,Type string
 	if strings.Contains(h.Filename,"head"){
@@ -36,6 +38,8 @@ func (u *UpgradeController) Post() {
 		if strings.Contains(account,".")||strings.Contains(account,"@"){
 			account = models.QueryAccountWithEmail(account)
 		}
+
+
 		fpath = path.Join("/tmp/account/"+account+"/head", h.Filename)
 		err = os.MkdirAll("/tmp/account/"+account+"/head", 0700)
 	}else {

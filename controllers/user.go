@@ -15,7 +15,7 @@ import (
 	"encoding/base64"
 	"os"
 
-
+	_ "html/template"
 )
 
 type UserController struct {
@@ -37,18 +37,28 @@ func (controller *UserController) Register() {
 		controller.ServeJSON()
 		return
 	}
+	//models.InsertVerify(email,user,password,location)
+	//models.SendVerifyMail(email,"测试链接http://120.76.128.35:4569/api/user_ctl/verify/"+email)
 	account, err := models.AddRegister(user, password, email,location)
-	if err != nil {
-		controller.Data["json"] = err.Error()
+	if err!=nil {
+		arr["detail"] = err.Error()
+		arr["status"] = "failed"
+		controller.Data[`json`]= arr
 		controller.ServeJSON()
 		return
-	} else {
+	}else {
 		arr["detail"] = account
 		arr["status"] = "success"
 		controller.Data[`json`]= arr
 		controller.ServeJSON()
 		return
 	}
+	//arr["detail"] = "send email,please verify"
+	//arr["status"] = "success"
+	//controller.Data[`json`]= arr
+	//controller.ServeJSON()
+	//return
+
 
 }
 //登录
@@ -305,13 +315,41 @@ func(c *UserController)DownloadAvatar(){
 	n, _ := ff.Read(sourcebuffer)
 	sourcestring := base64.StdEncoding.EncodeToString(sourcebuffer[:n])
 	s := "data:image/jpg;base64,"+sourcestring
-
 	c.Ctx.Output.Body([]byte(s))
 }
 func (c *UserController)FindPasswd(){
+	defer c.ServeJSON()
 	email :=c.GetString("email")
 	fmt.Println(email)
-	if strings.Contains(email,".")||strings.Contains(email,"@"){
-		email = models.QueryAccountWithEmail(email)
+	if !(strings.Contains(email,".")||strings.Contains(email,"@")){
+		email = models.QueryEmailWithAccount(email)
 	}
+	if email=="0"{
+		json :=JsonM{Detail:"email error",Status:"failed"}
+		c.Data[`json`]=json
+		c.ServeJSON()
+		return
+	}
+	if !models.QueryIsEmailExist(email){
+		json :=JsonM{Detail:"email error",Status:"failed"}
+		c.Data[`json`]=json
+		c.ServeJSON()
+		return
+	}
+	password :=models.QueryPassword(email)
+	err :=models.SendMail(email,password)
+	if err!=""{
+		json :=JsonM{Detail:err,Status:"failed"}
+		c.Data[`json`]=json
+		c.ServeJSON()
+		return
+	}
+	json :=JsonM{Detail:"password send to email",Status:"success"}
+	c.Data[`json`]=json
+	c.ServeJSON()
+	return
+}
+
+type Person struct {
+	UserName string
 }

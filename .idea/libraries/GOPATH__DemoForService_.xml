@@ -6,7 +6,6 @@
       <root url="file://$PROJECT_DIR$/../../builtin" />
       <root url="file://$PROJECT_DIR$/../../go" />
       <root url="file://$PROJECT_DIR$/../../bytes" />
-      <root url="file://$PROJECT_DIR$/../../DemoForService" />
       <root url="file://$PROJECT_DIR$/../../time" />
       <root url="file://$PROJECT_DIR$/../../runtime" />
       <root url="file://$PROJECT_DIR$/../../smp" />
@@ -60,7 +59,6 @@
       <root url="file://$PROJECT_DIR$/../../builtin" />
       <root url="file://$PROJECT_DIR$/../../go" />
       <root url="file://$PROJECT_DIR$/../../bytes" />
-      <root url="file://$PROJECT_DIR$/../../DemoForService" />
       <root url="file://$PROJECT_DIR$/../../time" />
       <root url="file://$PROJECT_DIR$/../../runtime" />
       <root url="file://$PROJECT_DIR$/../../smp" />

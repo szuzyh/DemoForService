@@ -7,6 +7,10 @@ import (
 	"math/rand"
 	"strings"
 	"net/smtp"
+	"github.com/gopkg.in/gomail.v2"
+	_ "crypto/tls"
+	_ "log"
+	_ "github.com/web/models"
 )
 
 
@@ -94,6 +98,9 @@ func QueryPassword(account string)(password string){
 
 	var p []orm.Params
 	o.Raw(sql).Values(&p)
+	if p==nil{
+		password = ""
+	}
 	if str,ok := p[0]["password"].(string); ok {
 		/* act on str */
 		password = str
@@ -275,6 +282,20 @@ func QueryAccountWithEmail(email string)(account string){
 
 	return
 }
+func QueryEmailWithAccount(account string)(email string){
+	o := orm.NewOrm()
+	sql :="select email from register where account='"+account+"'"
+	var p []orm.ParamsList
+	o.Raw(sql).ValuesList(&p)
+	if p==nil{
+		email= "0"
+	}else {
+		result,_ :=p[0][0].(string)
+		email=result
+	}
+
+	return
+}
 func QueryOnline(account string)(online string){
 	o := orm.NewOrm()
 	sql :="select online from register where account='"+account+"'"
@@ -312,21 +333,65 @@ func SendToMail(user, password, host, to, subject, body, mailtype string) error 
 	err := smtp.SendMail(host, auth, user, send_to, msg)
 	return err
 }
-func SendMail(emial,userPass string){
+func SendMail(email,userPass string)(error string) {
 	user := "ace@zexabox.com"
 	password := "Zyh2013800297,."
-	host := "smtp.exmail.qq.com:25"
-
-
-	subject := "使用Golang发送邮件"
-
-
+	host := "smtp.exmail.qq.com"
+	subject := "泽云科技找回密码服务:"
+	body := "您的密码是:" + userPass;
 	fmt.Println("send email")
-	err := SendToMail(user, password, host, emial, subject, userPass, "html")
+	d := gomail.NewDialer(host, 25, user, password)
+	s, err := d.Dial()
 	if err != nil {
-		fmt.Println("Send mail error!")
-		fmt.Println(err)
-	} else {
-		fmt.Println("Send mail success!")
+		return err.Error()
 	}
+	m := gomail.NewMessage()
+	m.SetHeader("From",user)
+	m.SetHeader("To",email)
+	m.SetHeader("Subject",subject)
+	m.SetBody("text/html", body)
+	if err := gomail.Send(s, m); err != nil {
+		return err.Error()
+	}
+	m.Reset()
+
+	return ""
+}
+//func UpdateAvatar(account string,avatar []byte){
+//	o := orm.NewOrm()
+//
+//	sql :="update register set avatar = '"+avatar+"' where account = '"+account+"'"
+//	r,err := o.Raw(sql).Exec()
+//	if err != nil {
+//		fmt.Println(err.Error())
+//		return
+//	} else {
+//		num, _ := r.RowsAffected()
+//		fmt.Println("mysql row affected nums: ", num)
+//		return
+//	}
+//}
+func SendVerifyMail(email,msg string)(error string) {
+	user := "public@zexabox.com"
+	password := "Zexapub123"
+	host := "smtp.exmail.qq.com"
+	subject := "泽云科技找回密码服务:"
+	body := msg;
+	fmt.Println("send email")
+	d := gomail.NewDialer(host, 25, user, password)
+	s, err := d.Dial()
+	if err != nil {
+		return err.Error()
+	}
+	m := gomail.NewMessage()
+	m.SetHeader("From",user)
+	m.SetHeader("To",email)
+	m.SetHeader("Subject",subject)
+	m.SetBody("text/html", body)
+	if err := gomail.Send(s, m); err != nil {
+		return err.Error()
+	}
+	m.Reset()
+
+	return ""
 }

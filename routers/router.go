@@ -26,7 +26,8 @@ func init() {
 		beego.NSNamespace("/upgrade", beego.NSInclude(&controllers.UpgradeController{}, ), ),
 		beego.NSRouter("/getComparePic/:uid/:type", &controllers.PayController{}, "get:GetComparePic"),
 		beego.NSRouter("/getCMsg/:uid", &controllers.CompareMsgController{}, "get:GetCMsg"),
-		beego.NSRouter("/findPasswd", &controllers.UserController{}, "get:FindPasswd"),
+		beego.NSRouter("/findPasswd", &controllers.UserController{}, "post:FindPasswd"),
+		beego.NSRouter("/user_ctl/verify/:email", &controllers.VerifyController{}, ),
 
 	)
 	beego.AddNamespace(ns)
