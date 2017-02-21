@@ -11,6 +11,11 @@ import (
 	_ "crypto/tls"
 	_ "log"
 	_ "github.com/web/models"
+	"strconv"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"crypto/md5"
 )
 
 
@@ -87,6 +92,7 @@ func QueryIsEmailExist(email string)(exist bool){
 	return true
 }
 func QueryPassword(account string)(password string){
+
 	o := orm.NewOrm()
 	var sql string
 	endswith := strings.Contains(account,".")||strings.Contains(account,"@")
@@ -100,6 +106,7 @@ func QueryPassword(account string)(password string){
 	o.Raw(sql).Values(&p)
 	if p==nil{
 		password = ""
+		return
 	}
 	if str,ok := p[0]["password"].(string); ok {
 		/* act on str */
@@ -107,8 +114,10 @@ func QueryPassword(account string)(password string){
 		return
 	} else {
 		/* not string */
-		return "0"
+		password="0"
+		return
 	}
+
 }
 func QueryUMsg(account string)(user Register){
 	o := orm.NewOrm()
@@ -306,6 +315,7 @@ func QueryOnline(account string)(online string){
 	return
 }
 func UpdateOnline(account,Type string){
+	fmt.Println("-----------"+Type+"------------")
 	o := orm.NewOrm()
 	sql :="update register set online = '"+Type+"' where account = '"+account+"'"
 	r,err := o.Raw(sql).Exec()
@@ -334,8 +344,8 @@ func SendToMail(user, password, host, to, subject, body, mailtype string) error 
 	return err
 }
 func SendMail(email,userPass string)(error string) {
-	user := "ace@zexabox.com"
-	password := "Zyh2013800297,."
+	user := "public@zexabox.com"
+	password := "Zexapub123"
 	host := "smtp.exmail.qq.com"
 	subject := "泽云科技找回密码服务:"
 	body := "您的密码是:" + userPass;
@@ -394,4 +404,65 @@ func SendVerifyMail(email,msg string)(error string) {
 	m.Reset()
 
 	return ""
+}
+func DeleteUser(account string)(callback string){
+	o := orm.NewOrm()
+	sql :="delete  from register where account='"+account+"'"
+	r,err := o.Raw(sql).Exec()
+	if err != nil {
+		fmt.Println(err.Error())
+		return  err.Error()
+	} else {
+		num, _ := r.RowsAffected()
+		fmt.Println("mysql row affected nums: ", num)
+		return strconv.Itoa(int(num))
+	}
+}
+
+func UpdatePass(account,password string)(callback string){
+	o :=orm.NewOrm()
+	sql :="update register set password = '"+password+"' where account = '"+account+"'"
+	r,err := o.Raw(sql).Exec()
+	if err != nil {
+		fmt.Println(err.Error())
+		return  err.Error()
+	} else {
+		num, _ := r.RowsAffected()
+		fmt.Println("mysql row affected nums: ", num)
+		return strconv.Itoa(int(num))
+	}
+}
+func CreateSHA(s,requestName string)(str string){
+	key :="zexabox.com%sam&ace"
+	sF := key+s+requestName
+	hash := sha256.New()
+	hash.Write([]byte(sF))
+	md := hash.Sum(nil)
+	str = hex.EncodeToString(md)
+	return
+}
+func StrToMap(s string)(m map[string]interface{}){
+	str := strings.Split(s,";")
+	var jsonstr string
+	jsonstr=`{`
+	for i:=0;i<len(str);i++{
+		s1 :=strings.Split(str[i],"=")
+		if i==len(str)-1{
+			jsonstr=jsonstr+`"`+s1[0]+`":"`+s1[1]+`"`
+		}else {
+			jsonstr=jsonstr+`"`+s1[0]+`":"`+s1[1]+`",`
+		}
+	}
+	jsonstr+=`}`
+
+	json.Unmarshal([]byte(jsonstr), &m)
+	return
+}
+
+func CreateMD5(str string)(M string){
+	md5Ctx := md5.New()
+	md5Ctx.Write([]byte(str))
+	cipherStr := md5Ctx.Sum(nil)
+	md5Ctx.Write([]byte(hex.EncodeToString(cipherStr)))
+	return  hex.EncodeToString(md5Ctx.Sum(nil))
 }

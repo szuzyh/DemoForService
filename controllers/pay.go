@@ -119,7 +119,7 @@ func (c *PayController)GetComparePic() {
 	sourcebuffer := make([]byte, 500000)
 	var sourcestring string
 	if strings.EqualFold(Type, "person") {
-		ff, err := os.Open("/tmp/compare/" + pay.Account + "/" + dataTimeStr + "/" + id+"_"+pay.Account + "_" + pay.ID + "_person.jpg")
+		ff, err := os.Open("/tmp/compare/" + pay.Account + "/" + dataTimeStr + "/" + id+"_"+pay.Account + "_" + pay.ID +"_person.jpg")
 		if err != nil {
 			fmt.Println(err)
 			ff, _ = os.Open("/tmp/compare/error.jpg")

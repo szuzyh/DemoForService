@@ -23,7 +23,7 @@ type UpgradeController struct {
 // @Success 200 {int} confidence
 // @Failure 403 body is empty
 // @router / [post]
-func (u *UpgradeController) Post() {
+func (u *UpgradeController) Upload(){
 	f, h, err := u.GetFile("imageName")                  //获取上传的文件
 	if err != nil {
 		u.Data["json"] = Result{err.Error(), "fail"}

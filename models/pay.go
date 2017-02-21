@@ -18,6 +18,7 @@ type Pay struct {
 	Message string      `orm:"column(message);size(100)"`
 	Level string      `orm:"column(level);size(20)"`
 	ID string `orm:"column(id);size(30)"`
+	Confidence string `orm:"column(confidence);size(20)"`
 }
 
 type PayList struct {
@@ -126,10 +127,11 @@ func Record (ID,account string ,con string)(uid string){
 	num--
 	remain = strconv.Itoa(num)
 	UpdateRemain(account,remain)
+	fmt.Println("con："+con)
 	msg:="用户:"+account+" 进行了一次对比,相似度为:"+con+",剩余次数为:"+remain;
 	t := time.Now().Format("2006-01-02 15:04:05")
 	t = string(t)
-	sql := "insert into pay(account,created,message,level,id) values('" + account + "','" + t + "','" + msg + "','info','"+ID+"')"
+	sql := "insert into pay(account,created,message,level,id,confidence) values('" + account + "','" + t + "','" + msg + "','info','"+ID+"','"+con+"')"
 	re,err := o.Raw(sql).Exec()
 	if err != nil {
 		fmt.Println(err.Error())

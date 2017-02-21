@@ -16,25 +16,30 @@ import (
 	"os"
 
 	_ "html/template"
+
+	"time"
 )
 
 type UserController struct {
 	beego.Controller
+	ds DummySession
 }
-
+type DummySession struct {
+	Cnt int
+}
 //注册
-func (controller *UserController) Register() {
-	defer controller.ServeJSON()
-	user := controller.GetString("user")
-	password := controller.GetString("password")
-	email := controller.GetString("email")
-	location := controller.GetString("location")
+func (c *UserController) Register() {
+	defer c.ServeJSON()
+	user := c.GetString("user")
+	password := c.GetString("password")
+	email := c.GetString("email")
+	location := c.GetString("location")
 	arr := make(map[string]string)
 	if models.QueryIsEmailExist(email){
 		arr["detail"] = "email is used"
 		arr["status"] = "failed"
-		controller.Data[`json`]= arr
-		controller.ServeJSON()
+		c.Data[`json`]= arr
+		c.ServeJSON()
 		return
 	}
 	//models.InsertVerify(email,user,password,location)
@@ -43,14 +48,14 @@ func (controller *UserController) Register() {
 	if err!=nil {
 		arr["detail"] = err.Error()
 		arr["status"] = "failed"
-		controller.Data[`json`]= arr
-		controller.ServeJSON()
+		c.Data[`json`]= arr
+		c.ServeJSON()
 		return
 	}else {
 		arr["detail"] = account
 		arr["status"] = "success"
-		controller.Data[`json`]= arr
-		controller.ServeJSON()
+		c.Data[`json`]= arr
+		c.ServeJSON()
 		return
 	}
 	//arr["detail"] = "send email,please verify"
@@ -67,6 +72,7 @@ func (c *UserController)Login(){
 	defer c.ServeJSON()
 	password := c.GetString("password")
 	account := c.GetString("account")
+
 	var arr JsonM
 	if strings.Contains(account,".")||strings.Contains(account,"@"){
 		account = models.QueryAccountWithEmail(account)
@@ -75,21 +81,40 @@ func (c *UserController)Login(){
 		arr.Detail="account not found"
 		arr.Status="failed"
 	}else {
-		if strings.EqualFold(models.QueryOnline(account),"true"){
-			arr.Detail="account online"
-			arr.Status="failed"
-		}else {
-			str := models.QueryPassword(account)
-			if !strings.EqualFold(password,str){
-				arr.Detail="password error"
-				arr.Status="failed"
-			}else {
-				arr.Detail="login"
-				arr.Status="success"
-				models.UpdateOnline(account,"true")
-			}
-		}
+		if !models.QueryIsExist(account) {
+			arr.Detail = "account not found"
+			arr.Status = "failed"
+		} else {
+			//if strings.EqualFold(models.QueryOnline(account), "true") {
+			//	arr.Detail = "account online"
+			//	arr.Status = "failed"
+			//} else {
+				str := models.QueryPassword(account)
+				s := models.CreateSHA(str,"/login")
+				fmt.Println(s)
+				if !strings.EqualFold(password, s) {
+					arr.Detail = "password error"
+					arr.Status = "failed"
+				} else {
+					token := models.CreateMD5(account+time.Now().Format("2006-01-02 15:04:05"))
+					arr.Detail = token
+					arr.Status = "success"
+					models.UpdateOnline(account, "true")
+					if is,_ :=models.QueryLoginToken(account);!is {
+						models.AddToken(account,token)
+					}else {
+						models.UpdateLoginToken(account,token)
+					}
 
+					c.SetSession("userid",account)
+
+
+					//arr.Detail="login"
+
+				}
+			}
+
+		//}
 	}
 	c.Data[`json`]= arr
 	c.ServeJSON()
@@ -98,6 +123,14 @@ func (c *UserController)Login(){
 func (c *UserController)GetUMsg(){
 	defer c.ServeJSON()
 	account := c.GetString(":account")
+
+	//m :=c.Ctx.Request.Header.Get("Cookie")
+	//m1 := models.StrToMap(m)
+	//fmt.Println(m1["userid"])
+	//fmt.Println(m1["beegosessionID"])
+	fmt.Println(c.GetSession("userid"))
+	//fmt.Println(c.GetSession("beegosessionID"))
+
 	if strings.Contains(account,".")||strings.Contains(account,"@"){
 		account = models.QueryAccountWithEmail(account)
 	}
@@ -202,15 +235,7 @@ func (c *UserController)Recharge(){
 	c.ServeJSON()
 	return
 }
-func (c *UserController)Ifaces(){
-	defer c.ServeJSON()
-	var arr JsonM
-	arr.Detail= "get ifaces"
-	arr.Status="success"
-	c.Data[`json`]= arr
-	c.ServeJSON()
-	return
-}
+
 
 func (c *UserController)GetAll(){
 	defer c.ServeJSON()
@@ -320,7 +345,14 @@ func(c *UserController)DownloadAvatar(){
 func (c *UserController)FindPasswd(){
 	defer c.ServeJSON()
 	email :=c.GetString("email")
-	fmt.Println(email)
+	//token :=c.GetString("token")
+	//if err:=models.CheckToken(token);err!=nil{
+	//	json :=JsonM{Detail:"token error"+err.Error(),Status:"failed"}
+	//	c.Data[`json`]=json
+	//	c.ServeJSON()
+	//	return
+	//}
+	//fmt.Println(email)
 	if !(strings.Contains(email,".")||strings.Contains(email,"@")){
 		email = models.QueryEmailWithAccount(email)
 	}
@@ -350,6 +382,142 @@ func (c *UserController)FindPasswd(){
 	return
 }
 
-type Person struct {
-	UserName string
+func (this *UserController)SearchUsers(){
+	fmt.Printf("%+v", string(this.Ctx.Input.RequestBody))
+	UserModel :=[]string{
+		"Created",
+		"Account",
+		"User",
+		"Location",
+		"Id",
+	}
+	maps, count, counts := models.Datatables(UserModel, new(models.Register), this.Ctx.Input)
+
+	data := make(map[string]interface{}, count)
+	var output = make([][]interface{}, len(maps))
+	for i, m := range maps {
+		for _, v := range UserModel {
+			output[i] = append(output[i], m[v])
+
+			//if v == "Uid" {
+			//	output[i] = append(output[i],m[v].())
+			//}else {
+			//	output[i] = append(output[i], m[v])
+			//}
+		}
+	}
+
+	data["sEcho"], _ = strconv.Atoi(this.Ctx.Input.Query("sEcho"))
+	data["iTotalRecords"] = counts
+	data["iTotalDisplayRecords"] = count
+	data["aaData"] = output
+	this.Data["json"] = data
+	this.ServeJSON()
+}
+
+func (this *UserController)DeleteUser(){
+
+	account := this.GetString("account")
+	callback :=models.DeleteUser(account)
+	var j JsonM
+	if callback!="1"{
+		j.Detail=callback
+		j.Status="failed"
+		this.Data["json"]=j
+		this.ServeJSON()
+		return
+	}
+	j.Detail="delete!"
+	j.Status="success"
+	this.Data["json"]=j
+	this.ServeJSON()
+	return
+}
+func (this *UserController)UpdatePassword(){
+	var j JsonM
+	account := this.GetString("account")
+	old := this.GetString("old")
+	new := this.GetString("new")
+	fmt.Println(old)
+	if strings.Contains(account,".")||strings.Contains(account,"@"){
+		account = models.QueryAccountWithEmail(account)
+	}
+	if account=="0"{
+		j.Detail="account error"
+		j.Status="failed"
+		this.Data["json"]=j
+		this.ServeJSON()
+		return
+	}
+
+	if old!=models.QueryPassword(account){
+		j.Detail="old password error"
+		j.Status="failed"
+		this.Data["json"]=j
+		this.ServeJSON()
+		return
+	}
+	callback :=models.UpdatePass(account,new)
+
+	if callback!="1"{
+		j.Detail=callback
+		j.Status="failed"
+		this.Data["json"]=j
+		this.ServeJSON()
+		return
+	}
+	j.Detail="update!"
+	j.Status="success"
+	this.Data["json"]=j
+	this.ServeJSON()
+	return
+}
+const (
+	METHOD_POST = "POST"
+	METHOD_GET  = "GET"
+)
+type RoomData struct {
+	Messages        []Message
+	RemainingPeople int
+}
+var (
+	_     = fmt.Printf // To prevent compiler complaining about unused imports
+	data  = make(map[string]*RoomData)
+	rooms = make([]string, 20) // Contains name of every currently active room
+)
+func contains(rooms []string, roomName string) bool {
+	for _, name := range rooms {
+		if name == roomName {
+			return true
+		}
+	}
+	return false
+}
+func redirectWithError(controller *UserController,
+	errorMessage string,
+	path string) {
+
+	flash := beego.NewFlash()
+	flash.Error(errorMessage)
+	flash.Store(&controller.Controller)
+	controller.Redirect(path, 302)
+}
+func (controller *UserController) Create() {
+	controller.TplName = "create.html"
+	beego.ReadFromRequest(&controller.Controller)
+	if controller.Ctx.Input.Method() == METHOD_POST {
+		roomName := controller.GetString("room-name")
+		if contains(rooms, roomName) {
+			redirectWithError(controller, "This room already exists.", "/create")
+		} else {
+			username := controller.GetString("username")
+			temp := make(map[string]interface{})
+			temp["roomName"] = roomName
+			temp["username"] = username
+			controller.SetSession(roomName, temp)
+			rooms = append(rooms, roomName)
+			data[roomName] = &RoomData{make([]Message, 0, 0), 1}
+			controller.Redirect("/room/"+roomName, 302)
+		}
+	}
 }
